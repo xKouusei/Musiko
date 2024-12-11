@@ -1,0 +1,160 @@
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Scanner;
+
+// Abstract
+abstract class Music {
+    public abstract String transposeNote(String note, int interval);
+    public abstract String[] transposeSheet(String[] musicSheet, String fromKey, String toKey);
+}
+
+// Concrete
+class MusicTransposer extends Music {
+    private static final Map<String, Integer> notesToSemitones = new HashMap<>();
+    private static final Map<Integer, String> semitonesToNotes = new HashMap<>();
+
+    // Static
+    static {
+        notesToSemitones.put("C", 0);
+        notesToSemitones.put("C#", 1);
+        notesToSemitones.put("D", 2);
+        notesToSemitones.put("D#", 3);
+        notesToSemitones.put("E", 4);
+        notesToSemitones.put("F", 5);
+        notesToSemitones.put("F#", 6);
+        notesToSemitones.put("G", 7);
+        notesToSemitones.put("G#", 8);
+        notesToSemitones.put("A", 9);
+        notesToSemitones.put("A#", 10);
+        notesToSemitones.put("B", 11);
+
+        for (Map.Entry<String, Integer> entry : notesToSemitones.entrySet()) {
+            semitonesToNotes.put(entry.getValue(), entry.getKey());
+        }
+    }
+
+    // Original transposeNote
+    @Override
+    public String transposeNote(String note, int interval) {
+        note = note.toUpperCase().trim();  // Ensure case-insensitive and trim input
+        if (!notesToSemitones.containsKey(note)) {
+            return null;  // Return null if the note is invalid
+        }
+        int originalSemitone = notesToSemitones.get(note);
+        int newSemitone = (originalSemitone + interval) % 12;
+        if (newSemitone < 0) newSemitone += 12;  // Handle negative values correctly (e.g., for flat notes)
+        return semitonesToNotes.get(newSemitone);
+    }
+
+    // Overloaded
+    public String transposeNote(String fromKey, String toKey, String note) {
+        fromKey = fromKey.toUpperCase().trim();
+        toKey = toKey.toUpperCase().trim();
+        note = note.toUpperCase().trim();
+        
+        if (!notesToSemitones.containsKey(fromKey) || !notesToSemitones.containsKey(toKey)) {
+            return null; // Invalid keys
+        }
+        int fromSemitone = notesToSemitones.get(fromKey);
+        int toSemitone = notesToSemitones.get(toKey);
+        int interval = toSemitone - fromSemitone;
+        return transposeNote(note, interval);  // Reuse the original method
+    }
+
+    @Override
+    public String[] transposeSheet(String[] musicSheet, String fromKey, String toKey) {
+        fromKey = fromKey.toUpperCase().trim();
+        toKey = toKey.toUpperCase().trim();
+
+        if (!notesToSemitones.containsKey(fromKey) || !notesToSemitones.containsKey(toKey)) {
+            throw new IllegalArgumentException("Invalid key provided.");
+        }
+
+        int fromSemitone = notesToSemitones.get(fromKey);
+        int toSemitone = notesToSemitones.get(toKey);
+        int interval = toSemitone - fromSemitone;
+
+        String[] transposedSheet = new String[musicSheet.length];
+        for (int i = 0; i < musicSheet.length; i++) {
+            String note = transposeNote(musicSheet[i], interval);
+            if (note == null) {
+                transposedSheet[i] = "Invalid Note";  // Mark invalid notes explicitly
+            } else {
+                transposedSheet[i] = note;
+            }
+        }
+
+        return transposedSheet;
+    }
+}
+
+public class MusicTranspositionApp {
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+
+        // Prompt user for input (encapsulation)
+        System.out.print("Enter your name: ");
+        String userName = scanner.nextLine().trim();
+        
+        System.out.print("Enter music piece name: ");
+        String musicPiece = scanner.nextLine().trim();
+        
+        System.out.print("Enter author's name: ");
+        String author = scanner.nextLine().trim();
+
+        if (userName.isEmpty() || musicPiece.isEmpty() || author.isEmpty()) {
+            System.out.println("Error: Please fill in all fields.");
+            return;
+        }
+
+        System.out.print("Enter the notes of the music sheet (e.g., D F# A B G): ");
+        String musicInput = scanner.nextLine().trim();
+        String[] musicSheet = musicInput.split(" ");
+
+        // Ask for the original and target keys
+        System.out.print("Enter the original key (e.g., C): ");
+        String fromKey = scanner.nextLine().trim();
+
+        System.out.print("Enter the target key (e.g., D): ");
+        String toKey = scanner.nextLine().trim();
+
+        MusicTransposer transposer = new MusicTransposer();
+        
+        try {
+            // Print Summary of Inputs
+            System.out.println("\nSummary:");
+            System.out.println("Name: " + userName);
+            System.out.println("Music Piece: " + musicPiece);
+            System.out.println("Author: " + author);
+            System.out.println("Music Sheet: " + String.join(" ", musicSheet));
+            System.out.println("Original Key: " + fromKey);
+            System.out.println("Target Key: " + toKey);
+
+            System.out.println("\nTransposed Music:");
+            for (String note : musicSheet) {
+                String transposedNote = transposer.transposeNote(fromKey, toKey, note);
+                if (transposedNote == null) {
+                    System.out.print("Invalid Note ");
+                } else {
+                    System.out.print(transposedNote + " ");
+                }
+            }
+            System.out.println();
+
+            String[] transposedSheet = transposer.transposeSheet(musicSheet, fromKey, toKey);
+            System.out.println("\nTransposed Music Sheet:");
+            for (String note : transposedSheet) {
+                if ("Invalid Note".equals(note)) {
+                    System.out.print("Invalid Note ");
+                } else {
+                    System.out.print(note + " ");
+                }
+            }
+            System.out.println();
+        } catch (IllegalArgumentException e) {
+            System.out.println("Error: " + e.getMessage());
+        }
+
+        scanner.close();
+    }
+}
